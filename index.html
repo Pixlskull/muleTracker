@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <br>
+    <div class="jumbotron">
+    <h1 class="display-4">Add to Mule</h1>
+    <br>
+    <!-- <input id = "item" class="form-control" placeholder="Item">
+    <br>
+    <textarea id = "message" class="form-control" placeholder="Your Message Here">
+</textarea>
+    <button id="send" class="btn btn-success">Send</button>
+    <br> -->
+    <input id="muleName" class="form-control" placeholder="Mule Name">
+    <br>
+    <button id="createMule" class="btn btn-success">Create Mule</button>
+    </div>
+    <div id="mules"></div>
+</div>
+<script src="socket.io/socket.io.js"></script>
+<script>
+    let socket = io();
+    let mules = [];
+    socket.on("mule", addMules)
+    socket.on("inventory", updateInventory)
+    $(() => {
+        // $("#send").click(()=>{
+        //     sendItem({item: $("#item").val()});
+        // })
+        $("#createMule").click(()=>{
+            createMule({username: $("#muleName").val()});
+        })
+        // $(".itemButton").click(()=>{
+        //     sendItem( $("#item").val())
+        // })
+        getMules()
+    })
+    function addMules(mule){
+        console.log(mule._id)
+        $("#mules").append(`
+            <div data-mule-id=${mule._id}>
+            <h4> ${mule.username} </h4>
+            <input class = "itemField" class="form-control" placeholder="Item">
+            <button onclick="addItem(this)" class="btn btn-success itemButton">Add Item</button>
+            <div class = "inventory ${mule._id}"> </div>
+            </div>
+        `)
+        for (let  item of mule.inventory){
+            const itemDiv = document.createElement("div");
+            $(itemDiv).append(`
+                <p>${item}</p>
+                <button onclick="deleteItem(this)"> delete item </button>
+            `)
+            $(`.inventory.${mule._id}`).append(itemDiv);
+        }
+    }
+    function getMules(){
+        $.get("http://localhost:8080/mules", (data) => {
+            console.log(data);
+            data.forEach(addMules);
+        })
+    }
+    function updateInventory(mule){
+        $(`div.inventory.${mule._id}`).empty();
+        for (let  item of mule.inventory){
+            const itemDiv = document.createElement("div");
+            $(itemDiv).append(`
+                <p>${item}</p>
+                <button onclick="deleteItem(this)"> delete item </button>
+            `)
+            $(`.inventory.${mule._id}`).append(itemDiv);
+        }
+    }
+    function addItem(element, e){
+        const id = element.parentNode.dataset.muleId;
+        const parent = document.querySelector(`div[data-mule-id="${id}"]`);
+        const input = document.querySelector(`div[data-mule-id="${id}"] input`);
+        req = {mule: id, item: input.value};
+        $.post("http://localhost:8080/addItem", req)
+        // sendItem(id, input.value);
+    }
+    function deleteItem(element, e){
+        const parent = element.parentNode;
+        const id = parent.parentNode.parentNode.dataset.muleId;
+        const item = parent.children[0].textContent;
+        req = {mule: id, item: item};
+        $.post("http://localhost:8080/deleteItem", req)
+    }
+    // function sendItem(mule, item){
+    //     req = {"requestType": add, "mule": mule, "item": item};
+    //     $.post("http://localhost:8080/items", req)
+    // }
+    function createMule(muleName){
+        $.post("http://localhost:8080/mules", muleName)
+    }
+</script>
+</body>
+</html>
